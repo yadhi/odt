@@ -1,0 +1,9 @@
+20111202
+--------
+* upload to github
+* functions :
+	- init
+	- save
+	- addParagraph
+	- addTable
+	- setTableCell
