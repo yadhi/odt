@@ -7,3 +7,10 @@
 	- addParagraph
 	- addTable
 	- setTableCell
+	
+20111206
+--------
+* functions :
+	- addImage
+	- getMimeType (private)
+	
