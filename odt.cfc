@@ -46,6 +46,35 @@
 	
 	<!--- array of valid images --->
 	<cfset this.images = ArrayNew(1)>
+	<!---
+		this.images = [
+			{
+				entryPath : "Pictures/imagename.ext" 
+				source	: "path/to/image"
+			},
+			{
+				entryPath : "Pictures/imagename.ext" 
+				source	: "path/to/image"
+			},
+			{ ... }
+		]
+	--->
+	
+	<!--- image replace --->
+	<cfset this.imageReplace = ArrayNew(1)>
+	<!---
+		this.imageReplace = [
+			{
+				entryPath : "Pictures/imagename.ext" 
+				source	: "path/to/image"
+			},
+			{
+				entryPath : "Pictures/imagename.ext" 
+				source	: "path/to/image"
+			},
+			{ ... }
+		]
+	--->
 	
 	<!--- page size --->
 	<cfset this.page.width = 0>
@@ -77,6 +106,8 @@
 			{ ... }
 		] 
 	--->
+	
+	
 	
 	<!--- init :: start --->
 	<cffunction 
@@ -182,6 +213,15 @@
 			<!--- add image to destination file --->
 			<cfif ArrayLen(this.images)>
 				<cfloop array="#this.images#" index="image">
+					<cfzipparam 
+						entrypath="#image.entryPath#" 
+						source="#image.source#">
+				</cfloop>
+			</cfif>
+			
+			<!--- replace image --->
+			<cfif ArrayLen(this.imageReplace)>
+				<cfloop array="#this.imageReplace#" index="image">
 					<cfzipparam 
 						entrypath="#image.entryPath#" 
 						source="#image.source#">
@@ -401,7 +441,142 @@
 				
 	</cffunction>
 	<!--- addTable :: end --->
+		
+	<!--- addTableRow :: start --->
+	<cffunction 
+		name="addTableRow" 
+		access="public" 
+		output="false" 
+		displayname="add table row" 
+		hint="add table row">
+		
+		<cfargument 
+			name="name" 
+			type="string" 
+			required="true" 
+			displayname="table name" 
+			hint="table name">
+		
+		<cfargument 
+			name="rows" 
+			type="numeric"
+			required="true" 
+			displayname="rows" 
+			hint="rows">
 			
+		<cfargument 
+			name="insertAfter" 
+			type="numeric"
+			required="false" 
+			displayname="insert after n-th rows" 
+			hint="insert after n-th rows">
+			
+		<!--- local scope --->
+		<cfset var loc = StructNew()>
+		
+		<cfset loc.table.xml.array = XmlSearch(this.odtXml.content, "//table:table[@name='#arguments.name#']")>
+		
+		<cfif not ArrayLen(loc.table.xml.array)>
+			<cfthrow message="Table not found, '#arguments.name#'">
+		</cfif>
+		
+		<cfset loc.table.xml.xml = loc.table.xml.array[1]> 
+		<cfset loc.table.info = getTableInfo(arguments.name)>
+		<cfset loc.table.hash = LCase(Left(Hash(Now(), "MD5"), "5"))>
+		
+		<cfset loc.table.insertAfter = loc.table.info.rows>
+		
+		<cfif StructKeyExists(arguments, "insertAfter") and Len(Trim(arguments.insertAfter))>
+			<cfif arguments.insertAfter lt 1>
+				<cfthrow message="Please set value for argument insertAfter between 1 to #loc.table.info.rows#" >
+			</cfif>
+			
+			<cfif arguments.insertAfter gt loc.table.info.rows>
+				<cfset loc.table.insertAfter = loc.table.info.rows>
+			<cfelse>
+				<cfset loc.table.insertAfter = arguments.insertAfter>
+			</cfif>
+			
+		</cfif>
+		
+		
+		<!--- rows --->
+		<cfset loc.tableChildren = loc.table.insertAfter>
+		<cfset loc.table.row.start = loc.table.insertAfter>
+		<cfset loc.table.row.end = loc.table.row.start + arguments.rows - 1>
+		<cfloop from="#loc.table.row.start#" to="#loc.table.row.end#" index="loc.row">
+			<cfset loc.tableChildren++>
+			
+			<!--- create rows --->
+			<cfset ArrayInsertAt(loc.table.xml.xml.XmlChildren, loc.tableChildren, XmlElemNew(this.odtXml.content, "table:table-row"))>
+			
+			<!--- delete xmlns --->
+			<cfif StructKeyExists(loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlAttributes, "xmlns:table")>
+				<cfset StructDelete(loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlAttributes, "xmlns:table")>
+			</cfif>
+			
+			<!--- cells --->
+			<cfloop from="1" to="#loc.table.info.columns#" index="loc.column">
+				<!--- create cells --->
+				<cfset loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column] = XmlElemNew(this.odtXml.content, "table:table-cell")>
+				
+				<!--- set cells attributes --->
+				<cfset loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlAttributes["table:style-name"] = arguments.name & "." & loc.row & "." & loc.column & "." & loc.table.hash>
+				<cfset loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlAttributes["office:value-type"] = "string">
+				
+				<!--- delete xmlns --->
+				<cfif StructKeyExists(loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlAttributes, "xmlns:table")>
+					<cfset StructDelete(loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlAttributes, "xmlns:table")>
+				</cfif>
+				
+				<!--- create paragragraph in cells --->
+				<cfset loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlChildren[1] = XmlElemNew(this.odtXml.content, "text:p")>
+				
+				<!--- set paragraph attributes --->
+				<cfset loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlChildren[1].XmlAttributes["text:style-name"] = "Standard">
+				
+				<!--- delete xmlns --->
+				<cfif StructKeyExists(loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlChildren[1].XmlAttributes, "xmlns:text")>
+					<cfset StructDelete(loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlChildren[1].XmlAttributes, "xmlns:text")>
+				</cfif>
+				
+			</cfloop>  
+		</cfloop>
+		
+		<!--- automatic styles --->
+		<cfset loc.officeAutomaticStyles = this.odtXml.content["office:document-content"]["office:automatic-styles"]>
+		<cfset loc.officeAutomaticStylesNew = ArrayLen(loc.officeAutomaticStyles.XmlChildren)>
+		
+		<cfloop from="#loc.table.row.start#" to="#loc.table.row.end#" index="loc.row">
+			<cfloop from="1" to="#loc.table.info.columns#" index="loc.column">
+				<cfset loc.officeAutomaticStylesNew++>
+				
+				<!--- create style (table cell) --->
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew] = XmlElemNew(this.odtXml.content, "style:style")>
+				
+				<!--- style attributes (table) --->
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:name"] = arguments.name & "." & loc.row & "." & loc.column & "." & loc.table.hash> 
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:family"] = "table-cell">
+				
+				<!--- create table cell properties --->
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1] = XmlElemNew(this.odtXml.content, "table-cell-properties")>
+				
+				<!--- table cell properties attributes --->
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:padding"] = "0.0382in">
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-left"] = "0.0007in solid ##000000">
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-right"] = "0.0007in solid ##000000">
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-top"] = "0.0007in solid ##000000">
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-bottom"] = "0.0007in solid ##000000">
+				
+			</cfloop>
+		</cfloop>
+		
+		<!--- update to "this" scope --->
+		<cfset loc.table.info.rows += arguments.rows - 1>
+		
+	</cffunction>
+	<!--- addTableRow :: end --->
+	
 	<!--- setTableCell :: start --->
 	<cffunction 
 		name="setTableCell" 
@@ -492,9 +667,6 @@
 		
 		<!--- just to make sure the source is image file --->
 		<cfif IsImageFile(arguments.source)>
-		
-			<!--- add paragraph --->
-			<cfset addParagraph("")>
 		
 			<cfset loc.image = StructNew()>
 			<cfset loc.image.object = ImageNew(arguments.source)>
@@ -675,6 +847,91 @@
 	</cffunction>
 	<!--- addImage :: end --->
 	
+	<!--- setField :: start --->
+	<cffunction 
+		name="setField" 
+		access="public" 
+		output="false" 
+		displayname="set field value" 
+		hint="set field value, currently only supported field with format Text">
+	
+		<cfargument 
+			name="name"
+			type="string"
+			required="true"
+			displayname="field name" 
+			hint="field name">
+		
+		<cfargument 
+			name="value"
+			type="string"
+			required="true"
+			displayname="field value" 
+			hint="field value">
+			
+		<!--- local scope --->
+		<cfset var loc = StructNew()>
+		
+		<cfset loc.field.xml.array = XmlSearch(this.odtXml.content, "//text:variable-set[@text:name='#arguments.name#']")>
+		
+		<cfif not ArrayLen(loc.field.xml.array)>
+			<cfthrow message="Field not found, '#arguments.name#'">
+		</cfif>
+		
+		<cfset loc.field.xml.xml = loc.field.xml.array[1]>
+		
+		<cfset loc.field.xml.xml.XmlText = arguments.value>
+			
+	</cffunction>
+	<!--- setField :: end --->
+	
+	<!--- replaceImage :: start --->
+	<cffunction 
+		name="replaceImage" 
+		access="public" 
+		output="false" 
+		displayname="replace image" 
+		hint="replace image">
+	
+		<cfargument 
+			name="name"
+			type="string"
+			required="true"
+			displayname="image name" 
+			hint="image name">
+		
+		<cfargument 
+			name="source" 
+			type="string" 
+			required="true" 
+			displayname="full path of image source" 
+			hint="full path of image source">
+	
+		<!--- local scope --->
+		<cfset var loc = StructNew()>
+		
+		<cfset loc.image.xml.array = XmlSearch(this.odtXml.content, "//draw:frame[@draw:name='#arguments.name#']")>
+		
+		<cfif not ArrayLen(loc.image.xml.array)>
+			<cfthrow message="Image not found, '#arguments.name#'">
+		</cfif>
+		
+		<cfif not IsImageFile(arguments.source)>
+			<cfthrow message="Source is not an image file, '#arguments.source#'" >
+		</cfif>
+		
+		<cfset loc.image.xml.xml = loc.image.xml.array[1]>
+		
+		<cfset loc.image.name = loc.image.xml.xml.XmlChildren[1].XmlAttributes["xlink:href"]> 
+		
+		<!--- append to 'this' scope--->
+		<cfset loc.image.replace.entryPath = loc.image.name>
+		<cfset loc.image.replace.source = arguments.source> 	
+		<cfset ArrayAppend(this.imageReplace, loc.image.replace)>
+			
+	</cffunction>
+	<!--- replaceImage :: end --->
+	
 	
 	<!--- 
 		private methods 
@@ -723,10 +980,13 @@
 		
 		<cfif ArrayLen(this.tables)>
 			
-			<cfloop array="#this.tables#" index="table">
-				<cfif table.name eq arguments.name>
+			<cfloop array="#this.tables#" index="loc.table">
+				<cfif loc.table.name eq arguments.name>
+					
 					<cfthrow message="Table name must unique, '#arguments.name#'" >
+					
 					<cfreturn false>
+					
 				</cfif>
 			</cfloop>
 			
@@ -735,4 +995,36 @@
 		<cfreturn true>
 	</cffunction>
 	<!--- uniqueTableName :: end --->
+		
+	<!--- getTableInfo :: start --->
+	<cffunction 
+		name="getTableInfo" 
+		access="private" 
+		output="false" 
+		displayname="get table info from 'this' scope" 
+		hint="get table info from 'this' scope">
+		
+		<cfargument 
+			name="name" 
+			type="string" 
+			required="true" 
+			displayname="table name" 
+			hint="table name">
+			
+		<!--- local scope --->
+		<cfset var loc = StructNew()>
+		
+		<cfloop array="#this.tables#" index="loc.table">
+			<cfif loc.table.name eq arguments.name>
+				
+				<cfset loc.tableInfo = loc.table>
+				
+				<cfbreak>
+				
+			</cfif>
+		</cfloop>	
+		
+		<cfreturn loc.tableInfo>
+	</cffunction>	
+	<!--- getTableInfo :: start --->
 </cfcomponent>

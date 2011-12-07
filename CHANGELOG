@@ -21,3 +21,12 @@
 * functions :
 	- uniqueTableName (private)
 	
+
+20111208
+--------
+* functions :
+	- addTableRow
+	- setField
+	- replaceImage
+	- getTableInfo (private)
+	
