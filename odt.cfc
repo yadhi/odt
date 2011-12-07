@@ -21,6 +21,8 @@
 	OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR 
 	THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+	
+	https://github.com/yadhi/odt
 --->
 
 
@@ -45,7 +47,36 @@
 	<!--- array of valid images --->
 	<cfset this.images = ArrayNew(1)>
 	
+	<!--- page size --->
+	<cfset this.page.width = 0>
+	<cfset this.page.height = 0>
+	<!--- page inner size --->
+	<cfset this.page.inner.width = 0>
+	<cfset this.page.inner.height = 0>
+	
+	<!--- margin --->
+	<cfset this.margin.top = 0>
+	<cfset this.margin.right = 0>
+	<cfset this.margin.bottom = 0>
+	<cfset this.margin.left = 0>
 
+	<!--- tables --->
+	<cfset this.tables = ArrayNew(1)>
+	<!---
+		this.tables = [
+			{
+				name : "table name",
+				columns : numeric,
+				rows : numeric
+			},
+			{
+				name : "table name",
+				columns : numeric,
+				rows : numeric
+			},
+			{ ... }
+		] 
+	--->
 	
 	<!--- init :: start --->
 	<cffunction 
@@ -81,6 +112,19 @@
 		<cfset this.odtXml["META-INF"]["manifest"] = XmlParse(loc.manifest)>
 		
 		<cfset this.template = arguments.template>
+		
+		<!--- page size, margin --->
+		<cfset loc.pageLayoutProperties.xml = XmlSearch(this.odtXml.styles, "/office:document-styles/office:automatic-styles/style:page-layout/style:page-layout-properties")>
+		<cfset this.page.width = Val(loc.pageLayoutProperties.xml[1].XmlAttributes["fo:page-width"])>
+		<cfset this.page.height = Val(loc.pageLayoutProperties.xml[1].XmlAttributes["fo:page-height"])>
+		<cfset this.margin.top = Val(loc.pageLayoutProperties.xml[1].XmlAttributes["fo:margin-top"])>
+		<cfset this.margin.right = Val(loc.pageLayoutProperties.xml[1].XmlAttributes["fo:margin-right"])>
+		<cfset this.margin.bottom = Val(loc.pageLayoutProperties.xml[1].XmlAttributes["fo:margin-bottom"])>
+		<cfset this.margin.left = Val(loc.pageLayoutProperties.xml[1].XmlAttributes["fo:margin-left"])>
+		
+		<cfset this.page.inner.width = this.page.width - this.margin.right - this.margin.left>
+		<cfset this.page.inner.height = this.page.height - this.margin.top - this.margin.bottom>
+		
 		
 		<cfreturn this>
 		
@@ -231,6 +275,10 @@
 		<!--- local scope --->
 		<cfset var loc = StructNew()>
 		
+		<cfif not uniqueTableName(arguments.name)>
+			<cfreturn false>
+		</cfif>
+		
 		<cfset loc.officeText = this.odtXml.content["office:document-content"]["office:body"]["office:text"]>
 		<cfset loc.officeTextNew = ArrayLen(loc.officeText.XmlChildren) + 1>
 		
@@ -250,7 +298,7 @@
 		<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[1] = XmlElemNew(this.odtXml.content, "table:table-column")>
 		
 		<!--- set columns attributes --->
-		<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[1].XmlAttributes["table:style-name"] = arguments.name & ".1"> 
+		<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[1].XmlAttributes["table:style-name"] = arguments.name & ".column"> 
 		<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[1].XmlAttributes["table:number-columns-repeated"] = arguments.columns>
 		
 		<!--- delete xmlns --->
@@ -298,10 +346,62 @@
 				
 			</cfloop>  
 		</cfloop>
+		
+		<!--- automatic styles --->
+		<cfset loc.officeAutomaticStyles = this.odtXml.content["office:document-content"]["office:automatic-styles"]>
+		<cfset loc.officeAutomaticStylesNew = ArrayLen(loc.officeAutomaticStyles.XmlChildren) + 1>
+		
+		<!--- create style (table) --->
+		<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew] = XmlElemNew(this.odtXml.content, "style:style")>
+		
+		<!--- style attributes (table) --->
+		<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:name"] = arguments.name> 
+		<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:family"] = "table">
+		
+		<!--- create table properties --->
+		<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1] = XmlElemNew(this.odtXml.content, "style:table-properties")>
+		
+		<!--- table properties attributes --->
+		<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["style:width"] = this.page.inner.width & "in">
+		<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["table:align"] = "margins">
+		
+		<cfif StructKeyExists(loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes, "xmlns:style")>
+			<cfset StructDelete(loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes, "xmlns:style")>
+		</cfif>
+		
+		<cfloop from="1" to="#arguments.rows#" index="loc.row">
+			<cfloop from="1" to="#arguments.columns#" index="loc.column">
+				<cfset loc.officeAutomaticStylesNew++>
+				
+				<!--- create style (table cell) --->
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew] = XmlElemNew(this.odtXml.content, "style:style")>
+				
+				<!--- style attributes (table) --->
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:name"] = arguments.name & "." & loc.row & "." & loc.column> 
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:family"] = "table-cell">
+				
+				<!--- create table cell properties --->
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1] = XmlElemNew(this.odtXml.content, "table-cell-properties")>
+				
+				<!--- table cell properties attributes --->
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:padding"] = "0.0382in">
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-left"] = "0.0007in solid ##000000">
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-right"] = "0.0007in solid ##000000">
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-top"] = "0.0007in solid ##000000">
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-bottom"] = "0.0007in solid ##000000">
+				
+			</cfloop>
+		</cfloop>
+		
+		<!--- append to "this" scope --->
+		<cfset loc.tables.name = arguments.name>
+		<cfset loc.tables.columns = arguments.columns>
+		<cfset loc.tables.rows = arguments.rows>
+		<cfset ArrayAppend(this.tables, loc.tables)>
 				
 	</cffunction>
 	<!--- addTable :: end --->
-	
+			
 	<!--- setTableCell :: start --->
 	<cffunction 
 		name="setTableCell" 
@@ -378,6 +478,14 @@
 			required="true" 
 			displayname="full path of image source" 
 			hint="full path of image source">
+			
+		<cfargument 
+			name="resize" 
+			type="string" 
+			required="false" 
+			displayname="resize image" 
+			hint="resize image" 
+			default="false"> 
 		
 		<!--- local scope --->
 		<cfset var loc = StructNew()>
@@ -385,18 +493,28 @@
 		<!--- just to make sure the source is image file --->
 		<cfif IsImageFile(arguments.source)>
 		
+			<!--- add paragraph --->
+			<cfset addParagraph("")>
+		
 			<cfset loc.image = StructNew()>
 			<cfset loc.image.object = ImageNew(arguments.source)>
 			<cfset loc.image.info = ImageInfo(loc.image.object)>
-			<cfset loc.image.maxwidth = 6.6925>	<!--- inch --->
+			
 			
 			<!--- ImageGetEXIFMetadata applies only for jpg image --->
+			<!---
 			<cftry>
 				<cfset loc.image.EXIFMetadata = ImageGetEXIFMetadata(loc.image.object)>
 				<cfcatch>
 					<cfset loc.image.EXIFMetadata = StructNew()>
 				</cfcatch>
 			</cftry>
+			--->
+			<cfif getMimeType(arguments.source) eq "image/jpeg">
+				<cfset loc.image.EXIFMetadata = ImageGetEXIFMetadata(loc.image.object)>
+			<cfelse>
+				<cfset loc.image.EXIFMetadata = StructNew()>
+			</cfif>
 			
 			<!--- get default resolution (dot per inch), or set dpi = 72 --->
 			<cfif StructKeyExists(loc.image.EXIFMetadata, "X Resolution")>
@@ -424,32 +542,46 @@
 			
 			<cfset loc.image.svg.width = loc.image.info.width / loc.image.resolution.x>
 			<cfset loc.image.svg.height = loc.image.info.height / loc.image.resolution.y>
+			<cfset loc.image.svg.scale = loc.image.svg.width / loc.image.svg.height>  
 			
 			<cfset loc.image.image.width = loc.image.info.width>
 			<cfset loc.image.image.height = loc.image.info.height>
 			
 			<!--- resize image, if bigger than maxwidth --->
-			<cfif loc.image.svg.width gt loc.image.maxwidth>
-				<cfset loc.image.svg.width = loc.image.maxwidth>
-				<cfset loc.image.image.width = loc.image.maxwidth * loc.image.resolution.x>
+			<cfif loc.image.svg.width gt this.page.inner.width>
+				<cfset loc.image.svg.width = this.page.inner.width>
 				
-				<cfset ImageScaleToFit(loc.image.object, loc.image.image.width, "")>
-				
-				<cfset loc.image.info = ImageInfo(loc.image.object)>
-				<cfset loc.image.svg.width = loc.image.info.width / loc.image.resolution.x>
-				<cfset loc.image.svg.height = loc.image.info.height / loc.image.resolution.y>
-				
-				<cfset loc.image.image.width = loc.image.info.width>
-				<cfset loc.image.image.height = loc.image.info.height>
+				<!--- if resize image --->
+				<cfif arguments.resize>
+					<cfset loc.image.image.width = this.page.inner.width * loc.image.resolution.x>
+					
+					<cfset ImageScaleToFit(loc.image.object, loc.image.image.width, "")>
+					
+					<cfset loc.image.info = ImageInfo(loc.image.object)>
+					<cfset loc.image.svg.width = loc.image.info.width / loc.image.resolution.x>
+					<cfset loc.image.svg.height = loc.image.info.height / loc.image.resolution.y>
+					
+					<cfset loc.image.image.width = loc.image.info.width>
+					<cfset loc.image.image.height = loc.image.info.height>
+				<cfelse>
+					
+					<cfset loc.image.svg.height = loc.image.svg.width / loc.image.svg.scale>
+				</cfif>
 			</cfif>
 			
 			<!--- write image to temporary directory --->
 			<cfset loc.image.temporaryFile = GetTempDirectory() & CreateUUID()>
 			<cfif ListLen(arguments.source, ".") gte 2>
 				<cfset loc.image.temporaryFile &= "." & ListLast(arguments.source, ".")>
+			</cfif>
+			
+			<cfif arguments.resize>
+				<!--- save resized image --->
+				<cfset ImageWrite(loc.image.object, loc.image.temporaryFile)>
+			<cfelse>
+				<!--- or just copy from source --->
+				<cfset FileCopy(arguments.source, loc.image.temporaryFile)>
 			</cfif>	
-			<cfset ImageWrite(loc.image.object, loc.image.temporaryFile)>
-				
 			
 			<!--- create frame --->
 			<cfset loc.lastParagraph.XmlChildren[1] = XmlElemNew(this.odtXml.content, "draw:frame")>
@@ -485,42 +617,42 @@
 			<cfset loc.officeAutomaticStylesNew = ArrayLen(loc.officeAutomaticStyles.XmlChildren) + 1>
 			
 			<!--- create style --->
-			<cfset loc.officeAutomaticStyles.XmlChildren[1] = XmlElemNew(this.odtXml.content, "style:style")>
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew] = XmlElemNew(this.odtXml.content, "style:style")>
 			
 			<!--- set style attributes --->
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlAttributes["style:name"] = arguments.name>
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlAttributes["style:family"] = "graphic">
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlAttributes["style:parent-style-name"] = "Graphics">
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:name"] = arguments.name>
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:family"] = "graphic">
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:parent-style-name"] = "Graphics">
 			
-			<cfif StructKeyExists(loc.officeAutomaticStyles.XmlChildren[1].XmlAttributes, "xmlns:style")>
-				<cfset StructDelete(loc.officeAutomaticStyles.XmlChildren[1].XmlAttributes, "xmlns:style")>
+			<cfif StructKeyExists(loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes, "xmlns:style")>
+				<cfset StructDelete(loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes, "xmlns:style")>
 			</cfif>
 			
 			<!--- create graphic properties --->
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1] = XmlElemNew(this.odtXml.content, "style:graphic-properties")>
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1] = XmlElemNew(this.odtXml.content, "style:graphic-properties")>
 			
 			<!--- set graphic properties attributes --->
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes["style:horizontal-pos"] = "center"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes["style:horizontal-rel"] = "paragraph">
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes["style:mirror"] = "none">
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes["fo:clip"] = "rect(0in, 0in, 0in, 0in)">
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes["draw:luminance"] = "0%"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes["draw:contrast"] = "0%"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes["draw:red"] = "0%"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes["draw:green"] = "0%"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes["draw:blue"] = "0%"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes["draw:gamma"] = "100%"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes["draw:color-inversion"] = "false"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes["draw:image-opacity"] = "100%"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes["draw:color-mode"] = "standard">
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["style:horizontal-pos"] = "center"> 
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["style:horizontal-rel"] = "paragraph">
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["style:mirror"] = "none">
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:clip"] = "rect(0in, 0in, 0in, 0in)">
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:luminance"] = "0%"> 
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:contrast"] = "0%"> 
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:red"] = "0%"> 
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:green"] = "0%"> 
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:blue"] = "0%"> 
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:gamma"] = "100%"> 
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:color-inversion"] = "false"> 
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:image-opacity"] = "100%"> 
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:color-mode"] = "standard">
 			
-			<cfif StructKeyExists(loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes, "xmlns:style")>
-				<cfset StructDelete(loc.officeAutomaticStyles.XmlChildren[1].XmlChildren[1].XmlAttributes, "xmlns:style")>
+			<cfif StructKeyExists(loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes, "xmlns:style")>
+				<cfset StructDelete(loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes, "xmlns:style")>
 			</cfif>
 			
 			<!--- manifest file entry --->
 			<cfset loc.manifest = this.odtXml["META-INF"]["manifest"]["manifest:manifest"]>
-			<cfset loc.manifestNew = ArrayLen(loc.manifest) + 1>
+			<cfset loc.manifestNew = ArrayLen(loc.manifest.XmlChildren) + 1>
 			
 			<!--- create manifest file entry --->
 			<cfset loc.manifest.XmlChildren[loc.manifestNew] = XmlElemNew(this.odtXml["META-INF"]["manifest"], "manifest:file-entry")>
@@ -536,20 +668,17 @@
 			<cfset loc.savedImage.source = loc.image.temporaryFile>
 			<cfset loc.savedImage.entryPath = "Pictures/" & loc.image.newName>
 			
-			<!--- set to this scope --->
+			<!--- set to "this" scope --->
 			<cfset ArrayAppend(this.images, loc.savedImage)>
-			
-				
-			
 		</cfif>
 		
 	</cffunction>
 	<!--- addImage :: end --->
 	
 	
-	
-	
-	<!--- private --->
+	<!--- 
+		private methods 
+	--->
 	<!--- getMimeType :: start --->
 	<cffunction 
 		name="getMimeType" 
@@ -575,4 +704,35 @@
 		 
 	</cffunction>
 	<!--- getMimeType :: end --->
+		
+	<!--- uniqueTableName :: start --->
+	<cffunction 
+		name="uniqueTableName" 
+		access="private" 
+		output="false" 
+		displayname="validate table name, table name must unique" 
+		hint="validate table name, table name must unique">
+		
+		<cfargument 
+			name="name" 
+			type="string" 
+			required="true" 
+			displayname="table name" 
+			hint="table name">
+			
+		
+		<cfif ArrayLen(this.tables)>
+			
+			<cfloop array="#this.tables#" index="table">
+				<cfif table.name eq arguments.name>
+					<cfthrow message="Table name must unique, '#arguments.name#'" >
+					<cfreturn false>
+				</cfif>
+			</cfloop>
+			
+		</cfif>
+		
+		<cfreturn true>
+	</cffunction>
+	<!--- uniqueTableName :: end --->
 </cfcomponent>

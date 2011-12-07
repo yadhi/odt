@@ -18,4 +18,6 @@
 20111207
 --------
 * function addImage, add resize argument
+* functions :
+	- uniqueTableName (private)
 	
