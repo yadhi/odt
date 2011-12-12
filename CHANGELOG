@@ -24,4 +24,11 @@
 	- replaceImage
 	- getTableInfo (private)
 	- uniqueTableName (private)
+
 	
+20111212
+--------
+* use XmlFormat to escape special xml characters
+* cache xml variables
+* functions :
+	- columnDesignator (private)

@@ -266,18 +266,19 @@
 		
 		<!--- create paragraph element --->
 		<cfset loc.officeText.XmlChildren[loc.officeTextNew] = XmlElemNew(this.odtXml.content, "text:p")>
+		<!--- new paragraph --->
+		<cfset loc.new.paragraph = loc.officeText.XmlChildren[loc.officeTextNew]>
 		
 		<!--- set attributes --->
-		<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlAttributes["text:style-name"] = "Standard">
+		<cfset loc.new.paragraph.XmlAttributes["text:style-name"] = "Standard">
 		
 		<!--- set text --->
-		<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlText = arguments.content>
+		<cfset loc.new.paragraph.XmlText = XmlFormat(arguments.content)>
 		
 		<!--- delete xmlns --->
-		<cfif StructKeyExists(loc.officeText.XmlChildren[loc.officeTextNew].XmlAttributes, "xmlns:text")>
-			<cfset StructDelete(loc.officeText.XmlChildren[loc.officeTextNew].XmlAttributes, "xmlns:text")>
+		<cfif StructKeyExists(loc.new.paragraph.XmlAttributes, "xmlns:text")>
+			<cfset StructDelete(loc.new.paragraph.XmlAttributes, "xmlns:text")>
 		</cfif>
-		
 	</cffunction> 
 	<!--- addParagraph :: end --->
 		
@@ -315,7 +316,7 @@
 		<!--- local scope --->
 		<cfset var loc = StructNew()>
 		
-		<cfif not uniqueTableName(arguments.name)>
+		<cfif not uniqueTableName(XmlFormat(arguments.name))>
 			<cfreturn false>
 		</cfif>
 		
@@ -324,26 +325,30 @@
 		
 		<!--- create table --->
 		<cfset loc.officeText.XmlChildren[loc.officeTextNew] = XmlElemNew(this.odtXml.content, "table:table")>
+		<!--- new table --->
+		<cfset loc.new.table = loc.officeText.XmlChildren[loc.officeTextNew]>
 		
 		<!--- set table attributes --->
-		<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlAttributes["table:name"] = arguments.name>
-		<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlAttributes["table:style-name"] = arguments.name>
+		<cfset loc.new.table.XmlAttributes["table:name"] = XmlFormat(arguments.name)>
+		<cfset loc.new.table.XmlAttributes["table:style-name"] = XmlFormat(arguments.name)>
 		
 		<!--- delete xmlns --->
-		<cfif StructKeyExists(loc.officeText.XmlChildren[loc.officeTextNew].XmlAttributes, "xmlns:table")>
-			<cfset StructDelete(loc.officeText.XmlChildren[loc.officeTextNew].XmlAttributes, "xmlns:table")>
+		<cfif StructKeyExists(loc.new.table.XmlAttributes, "xmlns:table")>
+			<cfset StructDelete(loc.new.table.XmlAttributes, "xmlns:table")>
 		</cfif>
 		
 		<!--- create columns --->
-		<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[1] = XmlElemNew(this.odtXml.content, "table:table-column")>
+		<cfset loc.new.table.XmlChildren[1] = XmlElemNew(this.odtXml.content, "table:table-column")>
+		<!--- new column --->
+		<cfset loc.new.column = loc.new.table.XmlChildren[1]>
 		
 		<!--- set columns attributes --->
-		<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[1].XmlAttributes["table:style-name"] = arguments.name & ".column"> 
-		<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[1].XmlAttributes["table:number-columns-repeated"] = arguments.columns>
+		<cfset loc.new.column.XmlAttributes["table:style-name"] = XmlFormat(arguments.name) & ".column">
+		<cfset loc.new.column.XmlAttributes["table:number-columns-repeated"] = arguments.columns>
 		
 		<!--- delete xmlns --->
-		<cfif StructKeyExists(loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[1].XmlAttributes, "xmlns:table")>
-			<cfset StructDelete(loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[1].XmlAttributes, "xmlns:table")>
+		<cfif StructKeyExists(loc.new.column.XmlAttributes, "xmlns:table")>
+			<cfset StructDelete(loc.new.column.XmlAttributes, "xmlns:table")>
 		</cfif>
 		
 		<!--- rows --->
@@ -353,35 +358,41 @@
 			
 			<!--- create rows --->
 			<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[loc.tableChildren] = XmlElemNew(this.odtXml.content, "table:table-row")>
+			<!--- new rows --->
+			<cfset loc.new.row = loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[loc.tableChildren]>
 			
 			<!--- delete xmlns --->
-			<cfif StructKeyExists(loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[loc.tableChildren].XmlAttributes, "xmlns:table")>
-				<cfset StructDelete(loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[loc.tableChildren].XmlAttributes, "xmlns:table")>
+			<cfif StructKeyExists(loc.new.row.XmlAttributes, "xmlns:table")>
+				<cfset StructDelete(loc.new.row.XmlAttributes, "xmlns:table")>
 			</cfif>
 			
 			<!--- cells --->
 			<cfloop from="1" to="#arguments.columns#" index="loc.column">
 				<!--- create cells --->
 				<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[loc.tableChildren].XmlChildren[loc.column] = XmlElemNew(this.odtXml.content, "table:table-cell")>
+				<!--- cell --->
+				<cfset loc.new.cell = loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[loc.tableChildren].XmlChildren[loc.column]>
 				
 				<!--- set cells attributes --->
-				<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlAttributes["table:style-name"] = arguments.name & "." & loc.row & "." & loc.column>
-				<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlAttributes["office:value-type"] = "string">
+				<cfset loc.new.cell.XmlAttributes["table:style-name"] = XmlFormat(arguments.name) & "." & columnDesignator(loc.column) & loc.row>
+				<cfset loc.new.cell.XmlAttributes["office:value-type"] = "string">
 				
 				<!--- delete xmlns --->
-				<cfif StructKeyExists(loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlAttributes, "xmlns:table")>
-					<cfset StructDelete(loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlAttributes, "xmlns:table")>
+				<cfif StructKeyExists(loc.new.cell.XmlAttributes, "xmlns:table")>
+					<cfset StructDelete(loc.new.cell.XmlAttributes, "xmlns:table")>
 				</cfif>
 				
 				<!--- create paragragraph in cells --->
-				<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlChildren[1] = XmlElemNew(this.odtXml.content, "text:p")>
+				<cfset loc.new.cell.XmlChildren[1] = XmlElemNew(this.odtXml.content, "text:p")>
+				<!--- paragraph in cell --->
+				<cfset loc.new.paragraph = loc.new.cell.XmlChildren[1]>
 				
 				<!--- set paragraph attributes --->
-				<cfset loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlChildren[1].XmlAttributes["text:style-name"] = "Standard">
+				<cfset loc.new.paragraph.XmlAttributes["text:style-name"] = "Standard">
 				
 				<!--- delete xmlns --->
-				<cfif StructKeyExists(loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlChildren[1].XmlAttributes, "xmlns:text")>
-					<cfset StructDelete(loc.officeText.XmlChildren[loc.officeTextNew].XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlChildren[1].XmlAttributes, "xmlns:text")>
+				<cfif StructKeyExists(loc.new.paragraph.XmlAttributes, "xmlns:text")>
+					<cfset StructDelete(loc.new.paragraph.XmlAttributes, "xmlns:text")>
 				</cfif>
 				
 			</cfloop>  
@@ -393,48 +404,102 @@
 		
 		<!--- create style (table) --->
 		<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew] = XmlElemNew(this.odtXml.content, "style:style")>
+		<!--- new style --->
+		<cfset loc.new.style = loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew]>
 		
 		<!--- style attributes (table) --->
-		<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:name"] = arguments.name> 
-		<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:family"] = "table">
+		<cfset loc.new.style.XmlAttributes["style:name"] = XmlFormat(arguments.name)> 
+		<cfset loc.new.style.XmlAttributes["style:family"] = "table">
 		
 		<!--- create table properties --->
-		<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1] = XmlElemNew(this.odtXml.content, "style:table-properties")>
+		<cfset loc.new.style.XmlChildren[1] = XmlElemNew(this.odtXml.content, "style:table-properties")>
+		<!--- new table properties --->
+		<cfset loc.new.tableProperties = loc.new.style.XmlChildren[1]>
 		
 		<!--- table properties attributes --->
-		<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["style:width"] = this.page.inner.width & "in">
-		<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["table:align"] = "margins">
+		<cfset loc.new.tableProperties.XmlAttributes["style:width"] = this.page.inner.width & "in">
+		<cfset loc.new.tableProperties.XmlAttributes["table:align"] = "margins">
+		<cfset loc.new.tableProperties.XmlAttributes["style:shadow"] = "none">
 		
-		<cfif StructKeyExists(loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes, "xmlns:style")>
-			<cfset StructDelete(loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes, "xmlns:style")>
+		<!--- delete xmlns --->
+		<cfif StructKeyExists(loc.new.tableProperties.XmlAttributes, "xmlns:style")>
+			<cfset StructDelete(loc.new.tableProperties.XmlAttributes, "xmlns:style")>
 		</cfif>
 		
+		<cfset loc.width.inch = NumberFormat(this.page.inner.width / arguments.columns, "9.9999")>
+		<cfset loc.width.relative = Round(65535 / arguments.columns)>
+		
+		<cfset loc.loop.column = 0>
+		<cfloop from="1" to="#arguments.columns#" index="loc.column">
+			<cfset loc.officeAutomaticStylesNew++>
+			<cfset loc.loop.column++>
+			
+			<!--- create table column properties --->
+			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew] = XmlElemNew(this.odtXml.content, "style:style")>
+			<!--- new column style --->
+			<cfset loc.new.columnStyle = loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew]>
+			
+			<!--- column style properties --->
+			<cfset loc.new.columnStyle.XmlAttributes["style:name"] = XmlFormat(arguments.name) & "." & columnDesignator(loc.column)>
+			<cfset loc.new.columnStyle.XmlAttributes["style:family"] = "table-column">
+			
+			<!--- table column properties --->
+			<cfset loc.new.columnStyle.XmlChildren[1] = XmlElemNew(this.odtXml.content, "style:table-column-properties")>
+			<!--- new table column properties --->
+			<cfset loc.new.tableColumnProperties = loc.new.columnStyle.XmlChildren[1]>
+			
+			<!--- table column properties --->
+			<cfset loc.new.tableColumnProperties.XmlAttributes["style:column-width"] = loc.width.inch & "in">
+			<cfset loc.new.tableColumnProperties.XmlAttributes["style:rel-column-width"] = loc.width.relative & "*">
+			
+		</cfloop>
+		
+		<cfset loc.loop.row = 0>
 		<cfloop from="1" to="#arguments.rows#" index="loc.row">
+			<cfset loc.loop.row++>
+			<cfset loc.loop.column = 0>
+			
 			<cfloop from="1" to="#arguments.columns#" index="loc.column">
 				<cfset loc.officeAutomaticStylesNew++>
+				<cfset loc.loop.column++>
 				
 				<!--- create style (table cell) --->
 				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew] = XmlElemNew(this.odtXml.content, "style:style")>
+				<!--- new cell style --->
+				<cfset loc.new.cellStyle = loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew]>
 				
 				<!--- style attributes (table) --->
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:name"] = arguments.name & "." & loc.row & "." & loc.column> 
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:family"] = "table-cell">
+				<cfset loc.new.cellStyle.XmlAttributes["style:name"] = XmlFormat(arguments.name) & "." & columnDesignator(loc.column) & loc.row>
+				<cfset loc.new.cellStyle.XmlAttributes["style:family"] = "table-cell">
 				
 				<!--- create table cell properties --->
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1] = XmlElemNew(this.odtXml.content, "table-cell-properties")>
+				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1] = XmlElemNew(this.odtXml.content, "style:table-cell-properties")>
+				<!--- new cell properties --->
+				<cfset loc.new.cellProperties = loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1]>
 				
 				<!--- table cell properties attributes --->
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:padding"] = "0.0382in">
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-left"] = "0.0007in solid ##000000">
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-right"] = "0.0007in solid ##000000">
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-top"] = "0.0007in solid ##000000">
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-bottom"] = "0.0007in solid ##000000">
+				<cfset loc.new.cellProperties.XmlAttributes["fo:padding"] = "0.0382in">
+				<cfset loc.new.cellProperties.XmlAttributes["fo:border-left"] = "0.0007in solid ##000000">
+				<cfset loc.new.cellProperties.XmlAttributes["fo:border-top"] = "0.0007in solid ##000000">
 				
+				<!--- rightmost column --->
+				<cfif loc.loop.column eq arguments.columns>
+					<cfset loc.new.cellProperties.XmlAttributes["fo:border-right"] = "0.0007in solid ##000000">
+				<cfelse>
+					<cfset loc.new.cellProperties.XmlAttributes["fo:border-right"] = "none">
+				</cfif>
+				
+				<!--- the bottom row --->
+				<cfif loc.loop.row eq arguments.rows>
+					<cfset loc.new.cellProperties.XmlAttributes["fo:border-bottom"] = "0.0007in solid ##000000">
+				<cfelse>
+					<cfset loc.new.cellProperties.XmlAttributes["fo:border-bottom"] = "none">
+				</cfif>
 			</cfloop>
 		</cfloop>
 		
 		<!--- append to "this" scope --->
-		<cfset loc.tables.name = arguments.name>
+		<cfset loc.tables.name = XmlFormat(arguments.name)>
 		<cfset loc.tables.columns = arguments.columns>
 		<cfset loc.tables.rows = arguments.rows>
 		<cfset ArrayAppend(this.tables, loc.tables)>
@@ -474,29 +539,34 @@
 		<!--- local scope --->
 		<cfset var loc = StructNew()>
 		
-		<cfset loc.table.xml.array = XmlSearch(this.odtXml.content, "//table:table[@name='#arguments.name#']")>
+		<cfset loc.table.xml.array = XmlSearch(this.odtXml.content, "//table:table[@name='#XmlFormat(arguments.name)#']")>
 		
 		<cfif not ArrayLen(loc.table.xml.array)>
-			<cfthrow message="Table not found, '#arguments.name#'">
+			<cfthrow message="Table not found, '#XmlFormat(arguments.name)#'">
 		</cfif>
 		
-		<cfset loc.table.xml.xml = loc.table.xml.array[1]> 
-		<cfset loc.table.info = getTableInfo(arguments.name)>
+		<cfset loc.table.xml.xml = loc.table.xml.array[1]>
+		  
+		<cfset loc.table.info = getTableInfo(XmlFormat(arguments.name))>
 		<cfset loc.table.hash = LCase(Left(Hash(Now(), "MD5"), "5"))>
 		
-		<cfset loc.table.insertAfter = loc.table.info.rows>
+		<cfset loc.table.insertAfter = loc.table.info.rows + 1>
 		
+		<cfset loc.table.isAppend = true>
 		<cfif StructKeyExists(arguments, "insertAfter") and Len(Trim(arguments.insertAfter))>
+			<cfset loc.table.isAppend = false>
+		</cfif>
+		
+		<cfif not loc.table.isAppend>
 			<cfif arguments.insertAfter lt 1>
 				<cfthrow message="Please set value for argument insertAfter between 1 to #loc.table.info.rows#" >
 			</cfif>
 			
 			<cfif arguments.insertAfter gt loc.table.info.rows>
-				<cfset loc.table.insertAfter = loc.table.info.rows>
+				<cfset loc.table.isAppend = true>
 			<cfelse>
-				<cfset loc.table.insertAfter = arguments.insertAfter>
+				<cfset loc.table.insertAfter = arguments.insertAfter + 1>
 			</cfif>
-			
 		</cfif>
 		
 		
@@ -504,11 +574,17 @@
 		<cfset loc.tableChildren = loc.table.insertAfter>
 		<cfset loc.table.row.start = loc.table.insertAfter>
 		<cfset loc.table.row.end = loc.table.row.start + arguments.rows - 1>
+		
 		<cfloop from="#loc.table.row.start#" to="#loc.table.row.end#" index="loc.row">
 			<cfset loc.tableChildren++>
 			
 			<!--- create rows --->
-			<cfset ArrayInsertAt(loc.table.xml.xml.XmlChildren, loc.tableChildren, XmlElemNew(this.odtXml.content, "table:table-row"))>
+			<cfif loc.table.isAppend>
+				<cfset loc.table.xml.xml.XmlChildren[loc.tableChildren] = XmlElemNew(this.odtXml.content, "table:table-row")>
+			<cfelse>
+				<cfset ArrayInsertAt(loc.table.xml.xml.XmlChildren, loc.tableChildren, XmlElemNew(this.odtXml.content, "table:table-row"))>
+			</cfif>
+			
 			
 			<!--- delete xmlns --->
 			<cfif StructKeyExists(loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlAttributes, "xmlns:table")>
@@ -519,25 +595,29 @@
 			<cfloop from="1" to="#loc.table.info.columns#" index="loc.column">
 				<!--- create cells --->
 				<cfset loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column] = XmlElemNew(this.odtXml.content, "table:table-cell")>
+				<!--- new cell --->
+				<cfset loc.new.cell = loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column]>
 				
 				<!--- set cells attributes --->
-				<cfset loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlAttributes["table:style-name"] = arguments.name & "." & loc.row & "." & loc.column & "." & loc.table.hash>
-				<cfset loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlAttributes["office:value-type"] = "string">
+				<cfset loc.new.cell.XmlAttributes["table:style-name"] = XmlFormat(arguments.name) & "." & columnDesignator(loc.column) & loc.row & "." & loc.table.hash>
+				<cfset loc.new.cell.XmlAttributes["office:value-type"] = "string">
 				
 				<!--- delete xmlns --->
-				<cfif StructKeyExists(loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlAttributes, "xmlns:table")>
-					<cfset StructDelete(loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlAttributes, "xmlns:table")>
+				<cfif StructKeyExists(loc.new.cell.XmlAttributes, "xmlns:table")>
+					<cfset StructDelete(loc.new.cell.XmlAttributes, "xmlns:table")>
 				</cfif>
 				
 				<!--- create paragragraph in cells --->
-				<cfset loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlChildren[1] = XmlElemNew(this.odtXml.content, "text:p")>
+				<cfset loc.new.cell.XmlChildren[1] = XmlElemNew(this.odtXml.content, "text:p")>
+				<!--- new paragraph --->
+				<cfset loc.new.paragraph = loc.new.cell.XmlChildren[1]>
 				
 				<!--- set paragraph attributes --->
-				<cfset loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlChildren[1].XmlAttributes["text:style-name"] = "Standard">
+				<cfset loc.new.paragraph.XmlAttributes["text:style-name"] = "Standard">
 				
 				<!--- delete xmlns --->
-				<cfif StructKeyExists(loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlChildren[1].XmlAttributes, "xmlns:text")>
-					<cfset StructDelete(loc.table.xml.xml.XmlChildren[loc.tableChildren].XmlChildren[loc.column].XmlChildren[1].XmlAttributes, "xmlns:text")>
+				<cfif StructKeyExists(loc.new.paragraph.XmlAttributes, "xmlns:text")>
+					<cfset StructDelete(loc.new.paragraph.XmlAttributes, "xmlns:text")>
 				</cfif>
 				
 			</cfloop>  
@@ -547,32 +627,53 @@
 		<cfset loc.officeAutomaticStyles = this.odtXml.content["office:document-content"]["office:automatic-styles"]>
 		<cfset loc.officeAutomaticStylesNew = ArrayLen(loc.officeAutomaticStyles.XmlChildren)>
 		
+		<cfset loc.loop.row = loc.table.info.rows>
 		<cfloop from="#loc.table.row.start#" to="#loc.table.row.end#" index="loc.row">
+			<cfset loc.loop.row++>
+			<cfset loc.loop.column = 0>
+			
 			<cfloop from="1" to="#loc.table.info.columns#" index="loc.column">
 				<cfset loc.officeAutomaticStylesNew++>
+				<cfset loc.loop.column++>
 				
 				<!--- create style (table cell) --->
 				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew] = XmlElemNew(this.odtXml.content, "style:style")>
+				<!--- new style --->
+				<cfset loc.new.style = loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew]>
 				
 				<!--- style attributes (table) --->
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:name"] = arguments.name & "." & loc.row & "." & loc.column & "." & loc.table.hash> 
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:family"] = "table-cell">
+				<cfset loc.new.style.XmlAttributes["style:name"] = XmlFormat(arguments.name) & "." & columnDesignator(loc.column) & loc.row & "." & loc.table.hash> 
+				<cfset loc.new.style.XmlAttributes["style:family"] = "table-cell">
 				
 				<!--- create table cell properties --->
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1] = XmlElemNew(this.odtXml.content, "table-cell-properties")>
+				<cfset loc.new.style.XmlChildren[1] = XmlElemNew(this.odtXml.content, "style:table-cell-properties")>
+				<!--- new table cell properties --->
+				<cfset loc.new.cellProperties = loc.new.style.XmlChildren[1]>
 				
 				<!--- table cell properties attributes --->
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:padding"] = "0.0382in">
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-left"] = "0.0007in solid ##000000">
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-right"] = "0.0007in solid ##000000">
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-top"] = "0.0007in solid ##000000">
-				<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:border-bottom"] = "0.0007in solid ##000000">
+				<cfset loc.new.cellProperties.XmlAttributes["fo:padding"] = "0.0382in">
+				<cfset loc.new.cellProperties.XmlAttributes["fo:border-left"] = "0.0007in solid ##000000">
+				<cfset loc.new.cellProperties.XmlAttributes["fo:border-top"] = "0.0007in solid ##000000">
+				
+				<!--- rightmost column --->
+				<cfif loc.loop.column eq loc.table.info.columns>
+					<cfset loc.new.cellProperties.XmlAttributes["fo:border-right"] = "0.0007in solid ##000000">
+				<cfelse>
+					<cfset loc.new.cellProperties.XmlAttributes["fo:border-right"] = "none">	
+				</cfif>
+				
+				<!--- the bottom row --->
+				<cfif loc.loop.row eq loc.table.row.end>
+					<cfset loc.new.cellProperties.XmlAttributes["fo:border-bottom"] = "0.0007in solid ##000000">
+				<cfelse>
+					<cfset loc.new.cellProperties.XmlAttributes["fo:border-bottom"] = "none">
+				</cfif>
 				
 			</cfloop>
 		</cfloop>
 		
 		<!--- update to "this" scope --->
-		<cfset loc.table.info.rows += arguments.rows - 1>
+		<cfset loc.table.info.rows = loc.table.info.rows + arguments.rows>
 		
 	</cffunction>
 	<!--- addTableRow :: end --->
@@ -621,13 +722,13 @@
 		<cfset loc.selectedTable = "">
 		
 		<cfloop array="#loc.tables#" index="loc.table">
-			<cfif loc.table.XmlAttributes["table:name"] eq arguments.name>
+			<cfif loc.table.XmlAttributes["table:name"] eq XmlFormat(arguments.name)>
 				<cfset loc.selectedTable = loc.table>
 				<cfbreak>				
 			</cfif>
 		</cfloop>
 		
-		<cfset loc.selectedTable.XmlChildren[arguments.row + 1].XmlChildren[arguments.column].XmlChildren[1].XmlText = arguments.content>
+		<cfset loc.selectedTable.XmlChildren[arguments.row + 1].XmlChildren[arguments.column].XmlChildren[1].XmlText = XmlFormat(arguments.content)>
 		 	
 	</cffunction>
 	<!--- setTableCell :: end --->
@@ -757,31 +858,35 @@
 			
 			<!--- create frame --->
 			<cfset loc.lastParagraph.XmlChildren[1] = XmlElemNew(this.odtXml.content, "draw:frame")>
+			<cfset loc.new.frame = loc.lastParagraph.XmlChildren[1]>
 			
 			<!--- set frame attributes --->
-			<cfset loc.lastParagraph.XmlChildren[1].XmlAttributes["draw:style-name"] = arguments.name>
-			<cfset loc.lastParagraph.XmlChildren[1].XmlAttributes["draw:name"] = arguments.name>
-			<cfset loc.lastParagraph.XmlChildren[1].XmlAttributes["text:anchor-type"] = "paragraph">
-			<cfset loc.lastParagraph.XmlChildren[1].XmlAttributes["svg:width"] = NumberFormat(loc.image.svg.width, "9.9999") & "in">
-			<cfset loc.lastParagraph.XmlChildren[1].XmlAttributes["svg:height"] = NumberFormat(loc.image.svg.height, "9.9999") & "in">
-			<cfset loc.lastParagraph.XmlChildren[1].XmlAttributes["draw:z-index"] = 0>
+			<cfset loc.new.frame.XmlAttributes["draw:style-name"] = XmlFormat(arguments.name)>
+			<cfset loc.new.frame.XmlAttributes["draw:name"] = XmlFormat(arguments.name)>
+			<cfset loc.new.frame.XmlAttributes["text:anchor-type"] = "paragraph">
+			<cfset loc.new.frame.XmlAttributes["svg:width"] = NumberFormat(loc.image.svg.width, "9.9999") & "in">
+			<cfset loc.new.frame.XmlAttributes["svg:height"] = NumberFormat(loc.image.svg.height, "9.9999") & "in">
+			<cfset loc.new.frame.XmlAttributes["draw:z-index"] = 0>
 			
 			<!--- delete xmlns --->
-			<cfif StructKeyExists(loc.lastParagraph.XmlChildren[1].XmlAttributes, "xmlns:draw")>
-				<cfset StructDelete(loc.lastParagraph.XmlChildren[1].XmlAttributes, "xmlns:draw")>
+			<cfif StructKeyExists(loc.new.frame.XmlAttributes, "xmlns:draw")>
+				<cfset StructDelete(loc.new.frame.XmlAttributes, "xmlns:draw")>
 			</cfif>
 			
 			<!--- create image --->
 			<cfset loc.lastParagraph.XmlChildren[1].XmlChildren[1] = XmlElemNew(this.odtXml.content, "draw:image")>
+			<!--- new image --->
+			<cfset loc.new.image = loc.lastParagraph.XmlChildren[1].XmlChildren[1]>
 			
 			<!--- set image attributes --->
-			<cfset loc.lastParagraph.XmlChildren[1].XmlChildren[1].XmlAttributes["xlink:href"] = "Pictures/" & loc.image.newName>
-			<cfset loc.lastParagraph.XmlChildren[1].XmlChildren[1].XmlAttributes["xlink:type"] = "simple">
-			<cfset loc.lastParagraph.XmlChildren[1].XmlChildren[1].XmlAttributes["xlink:show"] = "embed">
-			<cfset loc.lastParagraph.XmlChildren[1].XmlChildren[1].XmlAttributes["xlink:actuate"] = "onLoad">
+			<cfset loc.new.image.XmlAttributes["xlink:href"] = "Pictures/" & loc.image.newName>
+			<cfset loc.new.image.XmlAttributes["xlink:type"] = "simple">
+			<cfset loc.new.image.XmlAttributes["xlink:show"] = "embed">
+			<cfset loc.new.image.XmlAttributes["xlink:actuate"] = "onLoad">
 			
-			<cfif StructKeyExists(loc.lastParagraph.XmlChildren[1].XmlChildren[1].XmlAttributes, "xmlns:draw")>
-				<cfset StructDelete(loc.lastParagraph.XmlChildren[1].XmlChildren[1].XmlAttributes, "xmlns:draw")>
+			<!--- delete xmlns --->
+			<cfif StructKeyExists(loc.new.image.XmlAttributes, "xmlns:draw")>
+				<cfset StructDelete(loc.new.image.XmlAttributes, "xmlns:draw")>
 			</cfif>
 			
 			<!--- automatic styles --->
@@ -790,37 +895,44 @@
 			
 			<!--- create style --->
 			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew] = XmlElemNew(this.odtXml.content, "style:style")>
+			<!--- new style --->
+			<cfset loc.new.style = loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew]>
 			
 			<!--- set style attributes --->
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:name"] = arguments.name>
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:family"] = "graphic">
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes["style:parent-style-name"] = "Graphics">
+			<cfset loc.new.style.XmlAttributes["style:name"] = XmlFormat(arguments.name)>
+			<cfset loc.new.style.XmlAttributes["style:family"] = "graphic">
+			<cfset loc.new.style.XmlAttributes["style:parent-style-name"] = "Graphics">
 			
-			<cfif StructKeyExists(loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes, "xmlns:style")>
-				<cfset StructDelete(loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlAttributes, "xmlns:style")>
+			<!--- delete xmlns --->
+			<cfif StructKeyExists(loc.new.style.XmlAttributes, "xmlns:style")>
+				<cfset StructDelete(loc.new.style.XmlAttributes, "xmlns:style")>
 			</cfif>
 			
 			<!--- create graphic properties --->
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1] = XmlElemNew(this.odtXml.content, "style:graphic-properties")>
+			<cfset loc.new.style.XmlChildren[1] = XmlElemNew(this.odtXml.content, "style:graphic-properties")>
+			<!--- new graphic properties --->
+			<cfset loc.new.graphicProperties = loc.new.style.XmlChildren[1]>
 			
 			<!--- set graphic properties attributes --->
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["style:horizontal-pos"] = "center"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["style:horizontal-rel"] = "paragraph">
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["style:mirror"] = "none">
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["fo:clip"] = "rect(0in, 0in, 0in, 0in)">
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:luminance"] = "0%"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:contrast"] = "0%"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:red"] = "0%"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:green"] = "0%"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:blue"] = "0%"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:gamma"] = "100%"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:color-inversion"] = "false"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:image-opacity"] = "100%"> 
-			<cfset loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes["draw:color-mode"] = "standard">
+			<cfset loc.new.graphicProperties.XmlAttributes["style:horizontal-pos"] = "center"> 
+			<cfset loc.new.graphicProperties.XmlAttributes["style:horizontal-rel"] = "paragraph">
+			<cfset loc.new.graphicProperties.XmlAttributes["style:mirror"] = "none">
+			<cfset loc.new.graphicProperties.XmlAttributes["fo:clip"] = "rect(0in, 0in, 0in, 0in)">
+			<cfset loc.new.graphicProperties.XmlAttributes["draw:luminance"] = "0%"> 
+			<cfset loc.new.graphicProperties.XmlAttributes["draw:contrast"] = "0%"> 
+			<cfset loc.new.graphicProperties.XmlAttributes["draw:red"] = "0%"> 
+			<cfset loc.new.graphicProperties.XmlAttributes["draw:green"] = "0%"> 
+			<cfset loc.new.graphicProperties.XmlAttributes["draw:blue"] = "0%"> 
+			<cfset loc.new.graphicProperties.XmlAttributes["draw:gamma"] = "100%"> 
+			<cfset loc.new.graphicProperties.XmlAttributes["draw:color-inversion"] = "false"> 
+			<cfset loc.new.graphicProperties.XmlAttributes["draw:image-opacity"] = "100%"> 
+			<cfset loc.new.graphicProperties.XmlAttributes["draw:color-mode"] = "standard">
 			
-			<cfif StructKeyExists(loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes, "xmlns:style")>
-				<cfset StructDelete(loc.officeAutomaticStyles.XmlChildren[loc.officeAutomaticStylesNew].XmlChildren[1].XmlAttributes, "xmlns:style")>
+			<!--- delete xmlns --->
+			<cfif StructKeyExists(loc.new.graphicProperties.XmlAttributes, "xmlns:style")>
+				<cfset StructDelete(loc.new.graphicProperties.XmlAttributes, "xmlns:style")>
 			</cfif>
+			
 			
 			<!--- manifest file entry --->
 			<cfset loc.manifest = this.odtXml["META-INF"]["manifest"]["manifest:manifest"]>
@@ -828,13 +940,16 @@
 			
 			<!--- create manifest file entry --->
 			<cfset loc.manifest.XmlChildren[loc.manifestNew] = XmlElemNew(this.odtXml["META-INF"]["manifest"], "manifest:file-entry")>
+			<!--- new file entry --->
+			<cfset loc.new.fileEntry = loc.manifest.XmlChildren[loc.manifestNew]>
 		
 			<!--- set manifest file entry attributes --->
-			<cfset loc.manifest.XmlChildren[loc.manifestNew].XmlAttributes["manifest:media-type"] = getMimeType(loc.image.temporaryFile)>
-			<cfset loc.manifest.XmlChildren[loc.manifestNew].XmlAttributes["manifest:full-path"] = "Pictures/" & loc.image.newName>
+			<cfset loc.new.fileEntry.XmlAttributes["manifest:media-type"] = getMimeType(loc.image.temporaryFile)>
+			<cfset loc.new.fileEntry.XmlAttributes["manifest:full-path"] = "Pictures/" & loc.image.newName>
 			
-			<cfif StructKeyExists(loc.manifest.XmlChildren[loc.manifestNew].XmlAttributes, "xmlns:manifest")>
-				<cfset StructDelete(loc.manifest.XmlChildren[loc.manifestNew].XmlAttributes, "xmlns:manifest")>
+			<!--- delete xmlns --->
+			<cfif StructKeyExists(loc.new.fileEntry.XmlAttributes, "xmlns:manifest")>
+				<cfset StructDelete(loc.new.fileEntry.XmlAttributes, "xmlns:manifest")>
 			</cfif>
 			
 			<cfset loc.savedImage.source = loc.image.temporaryFile>
@@ -872,15 +987,15 @@
 		<!--- local scope --->
 		<cfset var loc = StructNew()>
 		
-		<cfset loc.field.xml.array = XmlSearch(this.odtXml.content, "//text:variable-set[@text:name='#arguments.name#']")>
+		<cfset loc.field.xml.array = XmlSearch(this.odtXml.content, "//text:variable-set[@text:name='#XmlFormat(arguments.name)#']")>
 		
 		<cfif not ArrayLen(loc.field.xml.array)>
-			<cfthrow message="Field not found, '#arguments.name#'">
+			<cfthrow message="Field not found, '#XmlFormat(arguments.name)#'">
 		</cfif>
 		
 		<cfset loc.field.xml.xml = loc.field.xml.array[1]>
 		
-		<cfset loc.field.xml.xml.XmlText = arguments.value>
+		<cfset loc.field.xml.xml.XmlText = XmlFormat(arguments.value)>
 			
 	</cffunction>
 	<!--- setField :: end --->
@@ -910,10 +1025,10 @@
 		<!--- local scope --->
 		<cfset var loc = StructNew()>
 		
-		<cfset loc.image.xml.array = XmlSearch(this.odtXml.content, "//draw:frame[@draw:name='#arguments.name#']")>
+		<cfset loc.image.xml.array = XmlSearch(this.odtXml.content, "//draw:frame[@name='#XmlFormat(arguments.name)#']")>
 		
 		<cfif not ArrayLen(loc.image.xml.array)>
-			<cfthrow message="Image not found, '#arguments.name#'">
+			<cfthrow message="Image not found, '#XmlFormat(arguments.name)#'">
 		</cfif>
 		
 		<cfif not IsImageFile(arguments.source)>
@@ -981,9 +1096,9 @@
 		<cfif ArrayLen(this.tables)>
 			
 			<cfloop array="#this.tables#" index="loc.table">
-				<cfif loc.table.name eq arguments.name>
+				<cfif loc.table.name eq XmlFormat(arguments.name)>
 					
-					<cfthrow message="Table name must unique, '#arguments.name#'" >
+					<cfthrow message="Table name must unique, '#XmlFormat(arguments.name)#'" >
 					
 					<cfreturn false>
 					
@@ -1015,7 +1130,7 @@
 		<cfset var loc = StructNew()>
 		
 		<cfloop array="#this.tables#" index="loc.table">
-			<cfif loc.table.name eq arguments.name>
+			<cfif loc.table.name eq XmlFormat(arguments.name)>
 				
 				<cfset loc.tableInfo = loc.table>
 				
@@ -1027,4 +1142,43 @@
 		<cfreturn loc.tableInfo>
 	</cffunction>	
 	<!--- getTableInfo :: start --->
+		
+	<!--- columnDesignator :: start --->
+	<cffunction 
+		name="columnDesignator" 
+		access="private" 
+		output="false" 
+		displayname="get table info from 'this' scope" 
+		hint="get table info from 'this' scope">
+		
+		<cfargument 
+			name="columns" 
+			type="numeric"
+			required="true" 
+			displayname="columns" 
+			hint="columns">
+			
+		<!--- local scope --->
+		<cfset var loc = StructNew()>
+		
+		<cfset loc.alphabet = ListToArray("A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z")>
+		
+		<!--- currently only support for 1 to 26 column(s) --->
+		<!---
+		<cfset loc.alphabentLen = ArrayLen(loc.alphabet)>
+		
+		<cfif arguments.columns gt loc.alphabentLen>
+			<cfset loc.columDesignator = loc.alphabet[(arguments.columns \ loc.alphabentLen)] & loc.alphabet[(arguments.columns mod loc.alphabentLen)]>
+		<cfelse>
+			<cfset loc.columDesignator = loc.alphabet[arguments.columns]>	
+		</cfif>
+		--->
+		
+		<cfset loc.columDesignator = loc.alphabet[arguments.columns]>
+		
+		<cfreturn loc.columDesignator>
+		
+	</cffunction>
+	<!--- columnDesignator :: end --->
+	
 </cfcomponent>
